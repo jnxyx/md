@@ -1,0 +1,60 @@
+# 前提
+小程序基础库自`1.6.4`版本起，提供了`<web-view/>`控件内嵌H5网页。内嵌网页与小程序运行在不同的两个环境，两者之间通信不能直接处理。内嵌网页可以通过jssdk调用wx对象，jssdk的wx对象提供有对接小程序通信的处理方式（`wx.miniProgram.postMessage`）。这样间接地通过jssdk的对象来与小程序进行页内通信。
+
+
+----------
+
+
+# 网页与小程序通信交互（分享举例）
+网页端：
+
+    wx.miniProgram.postMessage({
+        data: {
+            share: 1,
+            title: 'title',
+            desc: 'desc',
+            path: 'path',
+            imageUrl: imageUrl'
+        }
+    })
+    // 销毁小程序当前页触发小程序页内信息接收事件
+    wx.miniProgram.switchTab({
+        url: '/pages/index'
+    })
+小程序模版：
+
+    <web-view src="{{ wbSrc }}" bindmessage="msgHandler"></web-view>
+小程序接收事件
+
+    methods = {
+        msgHandler(event) {
+            // 接受消息
+            let data = event.detail && event.detail.data;
+            // 设置标识
+            data.forEach(item => {
+                // 分享
+                if (item && +item.share === 1) {
+                    let path = `/pages/wb?wbSrc=${ encodeURIComponent(item.path) }`
+                    let shareInfo = {
+                        title: item.title || '百度信贷，用科技为更多人提供值得信赖的金融服务',
+                        desc: item.desc || '有钱花',
+                        path: path || '/pages/index',
+                        imageUrl: item.imageUrl || 'https://ducash-files.bj.bcebos.com/wechat/share.png'
+                    }
+                    console.log(shareInfo)
+                }
+            });
+        }
+    }
+
+
+----------
+
+
+# 注意事项
+
+ - 仅支持打开公众号文章和小程序管理后台配置的业务域名
+ - 不适用于个人类型与海外类型的小程序
+ - 网页向小程序 `postMessage` 时，仅在特定时机（小程序后退、组件销毁、分享）触发并收到消息
+ - 在iOS中，若存在JSSDK接口调用无响应的情况，可在`<web-view/>`的src后面加个`#wechat_redirect`解决
+
